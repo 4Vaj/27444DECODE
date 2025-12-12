@@ -1,27 +1,22 @@
 package org.firstinspires.ftc.teamcode;
 
 // Imports
-import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import java.util.prefs.BackingStoreException;
-
-@TeleOp(name="AveionTeleOp", group = "Aveion")
+@TeleOp(name="AveionTeleOpLaunchTest", group = "Aveion")
 //@Disabled
-public class AveionTeleOp extends OpMode{
+public class AveionTeleOpLaunchTest extends OpMode{
 
     //Timers
     ElapsedTime feederTimer = new ElapsedTime();
@@ -31,7 +26,7 @@ public class AveionTeleOp extends OpMode{
     final double pushPosL = 0;
     final double pushPosR = 0.18;
 
-    final double pushPosLSet = 0.18;
+    final double pushPosLSet = 0.2;
     final double pushPosRSet = 0;
     final double liftTime = 1;
     final double FEED_TIME_SECONDS = 0.20;
@@ -119,16 +114,14 @@ public class AveionTeleOp extends OpMode{
 
         //Servo Directions
 
-        leftFeeder.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftFeeder.setDirection(DcMotorSimple.Direction.REVERSE);
         rightFeeder.setDirection(DcMotorSimple.Direction.FORWARD);
-        leftConveyor.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightConveyor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //Motor Behaviors
 
             //Launch Motors
-            launcher1.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-            launcher2.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            launcher1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            launcher2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
             //Drive Motors
             frontRight.setZeroPowerBehavior(BRAKE);
@@ -164,8 +157,6 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void start() {
-        leftPusher.setPosition(pushPosLSet);
-        rightPusher.setPosition(pushPosRSet);
         spinning = false;
         lifting = "";
     }
@@ -180,34 +171,20 @@ public class AveionTeleOp extends OpMode{
         mecanumDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
 
-        //Manual Controls
-        if (gamepad1.cross) {
+        if (gamepad1.square){
             spinning = true;
-            launcher1.setVelocity(LAUNCHER_TARGET_VELOCITY);
-            launcher2.setVelocity(LAUNCHER_TARGET_VELOCITY);
+            launcher1.setVelocity(1200);
+            launcher2.setVelocity(1200);
         }
 
-        else if (gamepad1.circle) {
+        else if (gamepad1.triangle){
             spinning = false;
             launcher1.setVelocity(0);
             launcher2.setVelocity(0);
         }
 
-        else if (gamepad1.dpad_down) {
-            leftPusher.setPosition(pushPosLSet);
-            rightPusher.setPosition(pushPosRSet);
-        }
-        leftFeeder.setPower(-gamepad1.left_trigger);
-        rightFeeder.setPower(-gamepad1.left_trigger);
-        leftConveyor.setPower(-gamepad1.left_trigger);
-        rightConveyor.setPower(-gamepad1.left_trigger);
 
-        leftFeeder.setPower(gamepad1.right_trigger);
-        rightFeeder.setPower(gamepad1.right_trigger);
-        leftConveyor.setPower(gamepad1.right_trigger);
-        rightConveyor.setPower(gamepad1.right_trigger);
-        //Auto controls
-        Lift(gamepad1.rightBumperWasPressed());
+        //Lift(gamepad1.rightBumperWasPressed());
 
 
         telemetry.addData("Spinning: ", spinning);
@@ -219,7 +196,7 @@ public class AveionTeleOp extends OpMode{
 
         telemetry.addData("Lift L: ", leftPusher.getPosition());
         telemetry.addData("Lift R: ", rightPusher.getPosition());
-    }
+}
 
     /*//////////////////////////////////////////////////////////////////////////////////////
     STOP
@@ -239,10 +216,10 @@ public class AveionTeleOp extends OpMode{
          */
         double denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
 
-        frontLeftPower = (forward + strafe - rotate) / denominator;
-        frontRightPower = (forward - strafe + rotate) / denominator;
-        backLeftPower = (forward - strafe - rotate) / denominator;
-        backRightPower = (forward + strafe + rotate) / denominator;
+        frontLeftPower = (forward + strafe + rotate) / denominator;
+        frontRightPower = (forward - strafe - rotate) / denominator;
+        backLeftPower = (forward - strafe + rotate) / denominator;
+        backRightPower = (forward + strafe - rotate) / denominator;
 
         frontLeft.setPower(frontLeftPower);
         frontRight.setPower(frontRightPower);
@@ -250,40 +227,41 @@ public class AveionTeleOp extends OpMode{
         backRight.setPower(backRightPower);
 
     }
-    void Lift(boolean shotRequested) {
-        switch (LiftState){
-            case IDLE:
-                spinning = false;
-                if (shotRequested){
-                    LiftState = LiftState.SPOOL;
-                }
-                break;
-            case SPOOL:
-                spinning = true;
-                launcher1.setVelocity(LAUNCHER_TARGET_VELOCITY);
-                launcher2.setVelocity(LAUNCHER_TARGET_VELOCITY);
-                if (launcher1.getVelocity() > LAUNCHER_MIN_VELOCITY && launcher2.getVelocity() > LAUNCHER_MIN_VELOCITY)
-                {
-                    LiftState = LiftState.LIFT;
-                }
-                break;
-            case LIFT:
-                lifting = "Lifting";
-                leftPusher.setPosition(pushPosL);
-                rightPusher.setPosition(pushPosR);
-                liftTimer.reset();
-                LiftState = LiftState.LIFTING;
-                break;
-            case LIFTING:
-                if (liftTimer.seconds() > liftTime) {
-                    lifting = "";
-                    leftPusher.setPosition(pushPosLSet);
-                    rightPusher.setPosition(pushPosRSet);
-                    LiftState = LiftState.IDLE;
-                }
-                break;
-        }
-    }
+
+//    void Lift(boolean shotRequested) {
+//        switch (LiftState){
+//            case IDLE:
+//                spinning = false;
+//                if (shotRequested){
+//                    LiftState = LiftState.SPOOL;
+//                }
+//                break;
+//            case SPOOL:
+//                spinning = true;
+//                launcher1.setVelocity(LAUNCHER_TARGET_VELOCITY);
+//                launcher2.setVelocity(LAUNCHER_TARGET_VELOCITY);
+//                if (launcher1.getVelocity() > LAUNCHER_MIN_VELOCITY && launcher2.getVelocity() > LAUNCHER_MIN_VELOCITY)
+//                {
+//                    LiftState = LiftState.LIFT;
+//                }
+//                break;
+//            case LIFT:
+//                lifting = "Lifting";
+//                leftPusher.setPosition(pushPosL);
+//                rightPusher.setPosition(pushPosR);
+//                liftTimer.reset();
+//                LiftState = LiftState.LIFTING;
+//                break;
+//            case LIFTING:
+//                if (liftTimer.seconds() > liftTime) {
+//                    lifting = "";
+//                    leftPusher.setPosition(pushPosLSet);
+//                    rightPusher.setPosition(pushPosRSet);
+//                    LiftState = LiftState.IDLE;
+//                }
+//                break;
+//        }
+//    }
 
     /*void launch(boolean shotRequested) {
         switch (launchState) {
