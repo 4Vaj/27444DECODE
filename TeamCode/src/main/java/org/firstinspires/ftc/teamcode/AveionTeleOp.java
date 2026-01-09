@@ -36,7 +36,7 @@ public class AveionTeleOp extends OpMode{
     final double STOP_SPEED = 0.0;
     final double FULL_SPEED = 1.0;
 
-    // Launcher Target and Min Velocities
+    // Launcher Target and Minimum Velocities
     final double LAUNCHER_TARGET_VELOCITY = 2000.00;
     final double LAUNCHER_MIN_VELOCITY = 1800.00;
 
