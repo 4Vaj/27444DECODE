@@ -28,19 +28,17 @@ public class AveionTeleOp extends OpMode{
     ElapsedTime liftTimer = new ElapsedTime();
 
     //Independent Variables
-    final double pushPosL = 0;
-    final double pushPosR = 0.18;
+    final double pushPos = 0.65;
 
-    final double pushPosLSet = 0.18;
-    final double pushPosRSet = 0;
+    final double pushPosSet = 0.38;
     final double liftTime = 1;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0.0;
     final double FULL_SPEED = 1.0;
 
     // Launcher Target and Min Velocities
-    final double LAUNCHER_TARGET_VELOCITY = 1200;
-    final double LAUNCHER_MIN_VELOCITY = 1100;
+    final double LAUNCHER_TARGET_VELOCITY = 2000.00;
+    final double LAUNCHER_MIN_VELOCITY = 1800.00;
 
     //Dependent Variables
 
@@ -51,14 +49,12 @@ public class AveionTeleOp extends OpMode{
     private DcMotor frontLeft = null;
     private DcMotor backLeft = null;
     private DcMotor backRight = null;
-    private DcMotorEx launcher1 = null;
-    private DcMotorEx launcher2 = null;
-    private CRServo leftFeeder = null;
-    private CRServo rightFeeder = null;
-    private CRServo leftConveyor = null;
-    private CRServo rightConveyor = null;
-    private Servo leftPusher = null;
-    private Servo rightPusher = null;
+    private DcMotorEx flywheel = null;
+    private CRServo leftIntake = null;
+    private CRServo rightIntake = null;
+    private DcMotor leftConveyor = null;
+    private DcMotor rightConveyor = null;
+    private Servo lift = null;
 
 
     private enum LaunchState {
@@ -96,56 +92,61 @@ public class AveionTeleOp extends OpMode{
         frontLeft = hardwareMap.get(DcMotor.class, "FL");
         backLeft = hardwareMap.get(DcMotor.class, "BL");
         backRight = hardwareMap.get(DcMotor.class, "BR");
-        launcher1 = hardwareMap.get(DcMotorEx.class, "launch1");
-        launcher2 = hardwareMap.get(DcMotorEx.class, "launch2");
-        leftFeeder = hardwareMap.get(CRServo.class, "leftFeed");
-        rightFeeder = hardwareMap.get(CRServo.class, "rightFeed");
-        leftConveyor = hardwareMap.get(CRServo.class, "leftConvey");
-        rightConveyor = hardwareMap.get(CRServo.class, "rightConvey");
-        leftPusher = hardwareMap.get(Servo.class, "leftLift");
-        rightPusher = hardwareMap.get(Servo.class, "rightLift");
+
+        flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
+
+        leftIntake = hardwareMap.get(CRServo.class, "leftFeed");
+        rightIntake = hardwareMap.get(CRServo.class, "rightFeed");
+
+        leftConveyor = hardwareMap.get(DcMotor.class, "leftConvey");
+        rightConveyor = hardwareMap.get(DcMotor.class, "rightConvey");
+
+        lift = hardwareMap.get(Servo.class, "lift");
 
         //Motor Directions
 
-            //Drive Motors
-            frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-            frontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
-            backRight.setDirection(DcMotorSimple.Direction.REVERSE);
-            backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        //Drive Motors
+        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
-            //Launch Motors
-            launcher1.setDirection(DcMotorEx.Direction.FORWARD);
-            launcher2.setDirection(DcMotorEx.Direction.REVERSE);
+        //Launch Motors
+        flywheel.setDirection(DcMotorEx.Direction.FORWARD);
+
+        //Conveyor Motors
+        leftConveyor.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightConveyor.setDirection(DcMotorSimple.Direction.FORWARD);
 
         //Servo Directions
 
-        leftFeeder.setDirection(DcMotorSimple.Direction.FORWARD);
-        rightFeeder.setDirection(DcMotorSimple.Direction.FORWARD);
-        leftConveyor.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightConveyor.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightIntake.setDirection(DcMotorSimple.Direction.FORWARD);
+
 
         //Motor Behaviors
 
-            //Launch Motors
-            launcher1.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-            launcher2.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        //Launch Motors
+        flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-            //Drive Motors
-            frontRight.setZeroPowerBehavior(BRAKE);
-            frontLeft.setZeroPowerBehavior(BRAKE);
-            backRight.setZeroPowerBehavior(BRAKE);
-            backLeft.setZeroPowerBehavior(BRAKE);
+        //Drive Motors
+        frontRight.setZeroPowerBehavior(BRAKE);
+        frontLeft.setZeroPowerBehavior(BRAKE);
+        backRight.setZeroPowerBehavior(BRAKE);
+        backLeft.setZeroPowerBehavior(BRAKE);
+
+        //Conveyor Motors
+        leftConveyor.setZeroPowerBehavior(BRAKE);
+        rightConveyor.setZeroPowerBehavior(BRAKE);
 
         //Servo Behaviors
 
-            //Feeders
-            leftFeeder.setPower(STOP_SPEED);
-            rightFeeder.setPower(STOP_SPEED);
+        //Feeders
+        leftIntake.setPower(STOP_SPEED);
+        rightIntake.setPower(STOP_SPEED);
 
         //PIDF Coefficients (i actually don't know how these work)
-        launcher1.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(300, 0, 0, 10));
-        launcher2.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(300, 0, 0, 10));
-
+        flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(300, 0, 0, 10));
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
     }
@@ -164,8 +165,7 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void start() {
-        leftPusher.setPosition(pushPosLSet);
-        rightPusher.setPosition(pushPosRSet);
+        lift.setPosition(pushPosSet);
         spinning = false;
         lifting = "";
     }
@@ -183,27 +183,28 @@ public class AveionTeleOp extends OpMode{
         //Manual Controls
         if (gamepad1.cross) {
             spinning = true;
-            launcher1.setVelocity(LAUNCHER_TARGET_VELOCITY);
-            launcher2.setVelocity(LAUNCHER_TARGET_VELOCITY);
+            flywheel.setVelocity(LAUNCHER_TARGET_VELOCITY);
         }
 
         else if (gamepad1.circle) {
             spinning = false;
-            launcher1.setVelocity(0);
-            launcher2.setVelocity(0);
+            flywheel.setVelocity(0);
         }
 
         else if (gamepad1.dpad_down) {
-            leftPusher.setPosition(pushPosLSet);
-            rightPusher.setPosition(pushPosRSet);
+            lift.setPosition(pushPosSet);
         }
-        leftFeeder.setPower(-gamepad1.left_trigger);
-        rightFeeder.setPower(-gamepad1.left_trigger);
+        else if (gamepad1.dpad_up)
+        {
+            lift.setPosition(pushPos);
+        }
+        leftIntake.setPower(-gamepad1.left_trigger);
+        rightIntake.setPower(-gamepad1.left_trigger);
         leftConveyor.setPower(-gamepad1.left_trigger);
         rightConveyor.setPower(-gamepad1.left_trigger);
 
-        leftFeeder.setPower(gamepad1.right_trigger);
-        rightFeeder.setPower(gamepad1.right_trigger);
+        leftIntake.setPower(gamepad1.right_trigger);
+        rightIntake.setPower(gamepad1.right_trigger);
         leftConveyor.setPower(gamepad1.right_trigger);
         rightConveyor.setPower(gamepad1.right_trigger);
         //Auto controls
@@ -213,12 +214,10 @@ public class AveionTeleOp extends OpMode{
         telemetry.addData("Spinning: ", spinning);
         telemetry.addData("Lift:", lifting);
 
-        telemetry.addData("Left Motor RPM: ", launcher1.getVelocity());
-        telemetry.addData("Right Motor RPM: ", launcher2.getVelocity());
+        telemetry.addData("Flywheel RPM: ", flywheel.getVelocity());
 
 
-        telemetry.addData("Lift L: ", leftPusher.getPosition());
-        telemetry.addData("Lift R: ", rightPusher.getPosition());
+        telemetry.addData("Lift: ", lift.getPosition());
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -260,25 +259,22 @@ public class AveionTeleOp extends OpMode{
                 break;
             case SPOOL:
                 spinning = true;
-                launcher1.setVelocity(LAUNCHER_TARGET_VELOCITY);
-                launcher2.setVelocity(LAUNCHER_TARGET_VELOCITY);
-                if (launcher1.getVelocity() > LAUNCHER_MIN_VELOCITY && launcher2.getVelocity() > LAUNCHER_MIN_VELOCITY)
+                flywheel.setVelocity(LAUNCHER_TARGET_VELOCITY);
+                if (flywheel.getVelocity() > LAUNCHER_MIN_VELOCITY)
                 {
                     LiftState = LiftState.LIFT;
                 }
                 break;
             case LIFT:
                 lifting = "Lifting";
-                leftPusher.setPosition(pushPosL);
-                rightPusher.setPosition(pushPosR);
+                lift.setPosition(pushPos);
                 liftTimer.reset();
                 LiftState = LiftState.LIFTING;
                 break;
             case LIFTING:
                 if (liftTimer.seconds() > liftTime) {
                     lifting = "";
-                    leftPusher.setPosition(pushPosLSet);
-                    rightPusher.setPosition(pushPosRSet);
+                    lift.setPosition(pushPosSet);
                     LiftState = LiftState.IDLE;
                 }
                 break;
@@ -293,8 +289,8 @@ public class AveionTeleOp extends OpMode{
                 }
                 break;
             case SPOOL:
-                launcher1.setVelocity(LAUNCHER_TARGET_VELOCITY);
-                if (launcher1.getVelocity() > LAUNCHER_MIN_VELOCITY) {
+                flywheel.setVelocity(LAUNCHER_TARGET_VELOCITY);
+                if (flywheel.getVelocity() > LAUNCHER_MIN_VELOCITY) {
                      launchState = LaunchState.LAUNCH;
                 }
                 break;
