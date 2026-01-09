@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 // Imports
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
+import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
@@ -42,11 +43,12 @@ public class AveionTeleOp extends OpMode{
     final double FULL_SPEED = 1.0;
 
     // Drive Gears
-    final double gearOne = 0.2;
-    final double gearTwo = 0.5;
+    final double gearOne = 0.4;
+    final double gearTwo = 0.6;
     final double gearThree = 1;
 
     // Target Velocities
+    final double tolerance = 50;
     final double VelocityZero = 1000;
     final double VelocityOne = 1200;
     final double VelocityTwo = 1500;
@@ -209,7 +211,18 @@ public class AveionTeleOp extends OpMode{
     public void init_loop() {
         // Pick a velocity to shoot at
         LAUNCHER_TARGET_VELOCITY = VelocityOne;
-        LAUNCHER_MIN_VELOCITY = VelocityOne - 100;
+        LAUNCHER_MIN_VELOCITY = VelocityOne - tolerance;
+
+        // Drive Gears
+        if (gamepad1.dpad_right){
+            gear = gearThree;
+        }
+        else if (gamepad1.dpad_up){
+            gear = gearTwo;
+        }
+        else if (gamepad1.dpad_left){
+            gear = gearOne;
+        }
     }
     /*//////////////////////////////////////////////////////////////////////////////////////
     START
@@ -242,6 +255,9 @@ public class AveionTeleOp extends OpMode{
         else if (gamepad2.dpad_down){
             LAUNCHER_TARGET_VELOCITY = VelocityFour;
         }
+        else if (gamepad2.share){
+            LAUNCHER_TARGET_VELOCITY = VelocityZero;
+        }
         LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 200;
 
 
@@ -254,7 +270,9 @@ public class AveionTeleOp extends OpMode{
         else if (gamepad2.circle) {
             spinning = false;
             LiftState = LiftState.LIFTING;
-            flywheel.setVelocity(0);
+            flywheel.setZeroPowerBehavior(BRAKE);
+            flywheel.setPower(0);
+            flywheel.setZeroPowerBehavior(FLOAT);
         }
         // Drive Gears
         if (gamepad1.dpad_right){

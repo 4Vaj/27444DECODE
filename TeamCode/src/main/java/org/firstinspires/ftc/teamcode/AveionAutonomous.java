@@ -258,15 +258,31 @@ public class AveionAutonomous extends OpMode{
             step++;
         }
         else if(step == 1 && !timerRunning){
-            MoveMecanum(300, 300, 0, 0.5);
+
+            Shoot(true);
+            Intake(2);
+            step++;
+        }
+        else if(step == 2 && !intakeRunning){
+            Shoot(true);
+            Intake(2);
+            step++;
+        }
+        else if(step == 3 && !intakeRunning){
+            Shoot(true);
+            Intake(2);
+            step++;
+        }
+        else if(step == 4 && !intakeRunning){
+            MoveMecanum(0, -100, 0, 0.5);
             step++;
         }
         else if (step == 2 && mecanumMoveDone()) {
-            Wait(2);
+            Wait(1);
             step++;
         }
         else if (step == 3 && !timerRunning){
-            MoveMecanum(0, 0, 90, 0.5);
+            MoveMecanum(100, 0, 0, 0.5);
             step++;
         }
         else if (step == 4 && mecanumMoveDone()){
