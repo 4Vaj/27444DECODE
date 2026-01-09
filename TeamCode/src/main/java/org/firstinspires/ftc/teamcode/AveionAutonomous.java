@@ -1,36 +1,45 @@
 package org.firstinspires.ftc.teamcode;
 
 // Imports
+
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-
-import androidx.lifecycle.Lifecycle;
-
 import com.qualcomm.ftccommon.SoundPlayer;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
-import java.util.prefs.BackingStoreException;
-
-@TeleOp(name="AveionTeleOp", group = "Aveion")
+@Autonomous(name="AveionSimpleAuto", group = "Aveion")
 //@Disabled
-public class AveionTeleOp extends OpMode{
+public class AveionAutonomous extends OpMode{
 
     //Timers
     ElapsedTime feederTimer = new ElapsedTime();
     ElapsedTime liftTimer = new ElapsedTime();
+
+    ElapsedTime intakeTimer = new ElapsedTime();
+    ElapsedTime waitTimer = new ElapsedTime();
+
+    // MOTOR ENCODER VALUES
+    static final double TICKS_PER_REV = 537.7;
+    static final double WHEEL_DIAMETER_MM = 104;
+    static final double GEAR_RATIO = 1.0;
+
+    //Front to back wheel centers measurement: 300.839mm
+    //Left to right wheel centers measurement: 348.160mm
+    static final double ROBOT_WIDTH_MM = 300.839;
+    static final double ROBOT_LENGTH_MM = 348.160;
+    double wheelCircumference = Math.PI * WHEEL_DIAMETER_MM;
+
+
+
 
     //Independent Variables
     final double pushPos = 0.65;
@@ -41,11 +50,6 @@ public class AveionTeleOp extends OpMode{
     final double STOP_SPEED = 0.0;
     final double FULL_SPEED = 1.0;
 
-    // Drive Gears
-    final double gearOne = 0.2;
-    final double gearTwo = 0.5;
-    final double gearThree = 1;
-
     // Target Velocities
     final double VelocityZero = 1000;
     final double VelocityOne = 1200;
@@ -54,6 +58,13 @@ public class AveionTeleOp extends OpMode{
     final double VelocityFour = 2500;
 
     //Dependent Variables
+
+    private int step = 0;
+
+    private boolean timerRunning;
+    private double timerDuration = 0;
+    private boolean intakeRunning;
+    private double intakeDuration = 0;
 
     // Launcher Target and Minimumm Velocities
     private double LAUNCHER_TARGET_VELOCITY = 0;
@@ -74,6 +85,8 @@ public class AveionTeleOp extends OpMode{
     private Servo lift = null;
 
     private boolean countachFound;
+
+    private double conveyPower = 0;
 
 
     private enum LaunchState {
@@ -174,6 +187,10 @@ public class AveionTeleOp extends OpMode{
 
         //Launch Motors
         flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         //Drive Motors
         frontRight.setZeroPowerBehavior(BRAKE);
@@ -210,6 +227,13 @@ public class AveionTeleOp extends OpMode{
         // Pick a velocity to shoot at
         LAUNCHER_TARGET_VELOCITY = VelocityOne;
         LAUNCHER_MIN_VELOCITY = VelocityOne - 100;
+
+        telemetry.addData("D-pad left:", VelocityOne);
+        telemetry.addData("D-pad up:", VelocityTwo);
+        telemetry.addData("D-pad down:", VelocityThree);
+        telemetry.addData("D-pad right:", VelocityFour);
+        telemetry.addLine("Please choose a velocity to run auto (default 1200).");
+        telemetry.addData("Velocity:", LAUNCHER_TARGET_VELOCITY);
     }
     /*//////////////////////////////////////////////////////////////////////////////////////
     START
@@ -217,7 +241,7 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void start() {
-        gear = gearTwo;
+        step = 0;
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -226,73 +250,33 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void loop() {
-        //Mecanum Drive
-        mecanumDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
-
-        //Velocities
-        if (gamepad2.dpad_left){
-            LAUNCHER_TARGET_VELOCITY = VelocityOne;
+        UpdateIntake();
+        UpdateWait();
+        //Steps here
+        if(step == 0){
+            Wait(5);
+            step++;
         }
-        else if (gamepad2.dpad_up){
-            LAUNCHER_TARGET_VELOCITY = VelocityTwo;
+        else if(step == 1 && !timerRunning){
+            MoveMecanum(300, 300, 0, 0.5);
+            step++;
         }
-        else if (gamepad2.dpad_right){
-            LAUNCHER_TARGET_VELOCITY = VelocityThree;
+        else if (step == 2 && mecanumMoveDone()) {
+            Wait(2);
+            step++;
         }
-        else if (gamepad2.dpad_down){
-            LAUNCHER_TARGET_VELOCITY = VelocityFour;
+        else if (step == 3 && !timerRunning){
+            MoveMecanum(0, 0, 90, 0.5);
+            step++;
         }
-        LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 200;
-
-
-        //Manual Controls
-        if (gamepad2.cross) {
-            spinning = true;
-            flywheel.setVelocity(LAUNCHER_TARGET_VELOCITY);
+        else if (step == 4 && mecanumMoveDone()){
+            stop();
         }
-
-        else if (gamepad2.circle) {
-            spinning = false;
-            LiftState = LiftState.LIFTING;
-            flywheel.setVelocity(0);
-        }
-        // Drive Gears
-        if (gamepad1.dpad_right){
-            gear = gearThree;
-        }
-        else if (gamepad1.dpad_up){
-            gear = gearTwo;
-        }
-        else if (gamepad1.dpad_left){
-            gear = gearOne;
-        }
-
-        leftIntake.setPower(-gamepad2.left_trigger);
-        rightIntake.setPower(-gamepad2.left_trigger);
-        leftConveyor.setPower(-gamepad2.left_trigger);
-        rightConveyor.setPower(-gamepad2.left_trigger);
-
-        leftIntake.setPower(gamepad2.right_trigger);
-        rightIntake.setPower(gamepad2.right_trigger);
-        leftConveyor.setPower(gamepad2.right_trigger);
-        rightConveyor.setPower(gamepad2.right_trigger);
-
-        //Auto controls
-        Shoot(gamepad2.rightBumperWasPressed());
-        ManualLift(gamepad2.squareWasPressed());
 
         telemetry.addData("Spinning: ", spinning);
         telemetry.addData("Lift:", lifting);
         telemetry.addData("Flywheel RPM: ", flywheel.getVelocity());
         telemetry.addData("Lift: ", lift.getPosition());
-
-        //telemetry.addLine("12345678912345678912345678912345678912");
-        telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addData("D-pad left:", VelocityOne);
-        telemetry.addData("D-pad up:", VelocityTwo);
-        telemetry.addData("D-pad down:", VelocityThree);
-        telemetry.addData("D-pad right:", VelocityFour);
-        telemetry.addData("Velocity:", LAUNCHER_TARGET_VELOCITY);
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -303,26 +287,98 @@ public class AveionTeleOp extends OpMode{
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
-    METHODS
+    FUNCTIONS
     /////////////////////////////////////////////////////////////////////////////////////*/
-    void mecanumDrive(float forward, float strafe, float rotate){
+    int mmToTicks(double distanceMM){
+        return (int)((distanceMM/wheelCircumference) * TICKS_PER_REV * GEAR_RATIO);
+    }
 
-        /* the denominator is the largest motor power (absolute value) or 1
-         * This ensures all the powers maintain the same ratio,
-         * but only if at least one is out of the range [-1, 1]
-         */
-        float denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
+    //Check Functions
 
-        frontLeftPower = ((forward + strafe + rotate) * gear) / denominator;
-        frontRightPower = ((forward - strafe - rotate) * gear) / denominator;
-        backLeftPower = ((forward - strafe + rotate) * gear ) / denominator;
-        backRightPower = ((forward + strafe - rotate) * gear ) / denominator;
+    boolean mecanumMoveDone(){
+        return !frontRight.isBusy() && !frontLeft.isBusy() && !backLeft.isBusy() && !backRight.isBusy();
+    }
+    void UpdateWait(){
+        if(!timerRunning){
+            return;
+        }
+        if(waitTimer.seconds() > timerDuration){
+            timerRunning = false;
+        }
+    }
+    void UpdateIntake(){
+        if(!intakeRunning){
+            return;
+        }
+        if(intakeTimer.seconds() < intakeDuration){
+            leftIntake.setPower(conveyPower);
+            rightIntake.setPower(conveyPower);
+            leftConveyor.setPower(conveyPower);
+            rightConveyor.setPower(conveyPower);
+        }
+        else {
+            leftIntake.setPower(0);
+            rightIntake.setPower(0);
+            leftConveyor.setPower(0);
+            rightConveyor.setPower(0);
+            intakeRunning = false;
+        }
+    }
 
-        frontLeft.setPower(frontLeftPower);
-        frontRight.setPower(frontRightPower);
-        backLeft.setPower(backLeftPower);
-        backRight.setPower(backRightPower);
+    // Physical Functions
+    void Wait(double time){
+        waitTimer.reset();
+        timerDuration = time;
+        timerRunning = true;
+    }
 
+    void MoveMecanum(double xMM, double yMM, double rotationDeg, double power){
+        //Convert rotation from degrees to approximate wheel linear distance (arc length)
+        double rotationMM = Math.toRadians(rotationDeg) * ((ROBOT_LENGTH_MM + ROBOT_WIDTH_MM) / 2.0);
+
+        // Calculate each wheel's linear distance (mm)
+        double frontLeftMM  =  yMM + xMM + rotationMM;
+        double frontRightMM =  yMM - xMM - rotationMM;
+        double backRightMM   =  yMM - xMM + rotationMM;
+        double backLeftMM  =  yMM + xMM - rotationMM;
+
+        // Convert to encoder ticks
+        int flTicks = mmToTicks(frontLeftMM);
+        int frTicks = mmToTicks(frontRightMM);
+        int brTicks = mmToTicks(backRightMM);
+        int blTicks = mmToTicks(backLeftMM);
+
+        // Reset encoders
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        // Run to position
+        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        // Set motor power
+        frontLeft.setPower(power);
+        frontRight.setPower(power);
+        backRight.setPower(power);
+        backLeft.setPower(power);
+    }
+    void Intake(double time) {
+        //Intake
+        conveyPower = 1;
+        intakeDuration = time;
+        intakeTimer.reset();
+        intakeRunning = true;
+    }
+    void Outtake(double time) {
+        //Outtake
+        conveyPower = -1;
+        intakeDuration = time;
+        intakeTimer.reset();
+        intakeRunning = true;
     }
 
     void ManualLift(boolean liftRequested){
