@@ -4,14 +4,9 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
-import android.media.tv.TvContract;
 import android.webkit.WebStorage;
 
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot.LogoFacingDirection;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot.UsbFacingDirection;
 import com.qualcomm.hardware.bosch.BHI260IMU;
-import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -27,16 +22,14 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
-@Autonomous(name="27444 DECODE Auto", group = "Aveion")
+@Autonomous(name="Mecanum Motor Tester - 27444 DECODE", group = "Aveion")
 //@Disabled
-public class AveionAutonomous extends OpMode{
+public class MecanumMotorTester extends OpMode{
 
-    // IMU
-    IMU imu;
-    RevHubOrientationOnRobot hubOrientation = new RevHubOrientationOnRobot(LogoFacingDirection.RIGHT, UsbFacingDirection.UP);
-
+    //IMU
+    BHI260IMU imu;
+    Orientation angles;
     //Timers
     ElapsedTime feederTimer = new ElapsedTime();
     ElapsedTime liftTimer = new ElapsedTime();
@@ -60,10 +53,11 @@ public class AveionAutonomous extends OpMode{
 
 
     //Independent Variables
+
     final double pushPos = 0.65;
 
     final double pushPosSet = 0.38;
-    final double liftTime = 0.5;
+    final double liftTime = 1;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0.0;
     final double FULL_SPEED = 1.0;
@@ -76,6 +70,16 @@ public class AveionAutonomous extends OpMode{
     final double VelocityFour = 2500;
 
     //Dependent Variables
+
+        //Mecanum Accuracy
+        private int flTarget, frTarget, blTarget, brTarget;
+        private double movePower, desiredHeading;
+        private boolean mecanumActive;
+
+        // Tuning Constants
+        double kP_encoder = 0.0005;
+        double kP_heading = 0.01;
+        int encoderTolerance = 10;
 
     private double delay;
     private String sideString;
@@ -146,9 +150,13 @@ public class AveionAutonomous extends OpMode{
 
     // Starting side enum to determine what program to run
     private enum StartingSide{
-        GOAL,
-        TRIANGLE,
-        TTG; //Triangle To Goal
+        GOAL(true),
+        TRIANGLE(false);
+
+        final boolean sign;
+        StartingSide(boolean sign){
+            this.sign = sign;
+        }
     }
 
     //private LaunchState launchState;
@@ -168,10 +176,11 @@ public class AveionAutonomous extends OpMode{
     INITIALIZE
     /////////////////////////////////////////////////////////////////////////////////*/
     @Override
-    public void init(){
+    public void init(){;
 
-        imu = hardwareMap.get(IMU.class, "imu");
-        imu.initialize(new IMU.Parameters(hubOrientation));
+        imu = hardwareMap.get(BHI260IMU.class, "imu");
+        imu.initialize();
+
 
         // Determine Resource IDs for sounds built into the RC application.
         int countachSoundID = hardwareMap.appContext.getResources().getIdentifier("countachlouder", "raw", hardwareMap.appContext.getPackageName());
@@ -213,10 +222,10 @@ public class AveionAutonomous extends OpMode{
         //Motor Directions
 
         //Drive Motors
-        frontRight.setDirection(DcMotorEx.Direction.FORWARD);
-        frontLeft.setDirection(DcMotorEx.Direction.REVERSE);
-        backRight.setDirection(DcMotorEx.Direction.FORWARD);
-        backLeft.setDirection(DcMotorEx.Direction.REVERSE);
+        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //Launch Motors
         flywheel.setDirection(DcMotorEx.Direction.FORWARD);
@@ -272,6 +281,7 @@ public class AveionAutonomous extends OpMode{
         timerRunning = false;
         step = 0;
         delay = 0;
+        mecanumActive = false;
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -283,98 +293,8 @@ public class AveionAutonomous extends OpMode{
 
     @Override
     public void init_loop() {
-        // Pick a velocity to shoot at
-        if (gamepad1.dpadLeftWasPressed()){
-            LAUNCHER_TARGET_VELOCITY = VelocityOne;
-        }
-        else if (gamepad1.dpadUpWasPressed()){
-            LAUNCHER_TARGET_VELOCITY = VelocityTwo;
-        }
-        else if (gamepad1.dpadRightWasPressed()){
-            LAUNCHER_TARGET_VELOCITY = VelocityThree;
-        }
-        else if (gamepad1.dpadDownWasPressed()){
-            LAUNCHER_TARGET_VELOCITY = VelocityFour;
-        }
-        else if (gamepad1.psWasPressed()){
-            LAUNCHER_TARGET_VELOCITY = VelocityZero;
-        }
-        else if (gamepad1.leftBumperWasPressed()){
-            LAUNCHER_TARGET_VELOCITY -= 50;
-        }
-        else if (gamepad1.rightBumperWasPressed()){
-            LAUNCHER_TARGET_VELOCITY += 50;
-        }
-        // Create a configuration
-        else if (gamepad1.circleWasPressed()){
-            StartingColor = StartingColor.RED;
-        }
-        else if (gamepad1.crossWasPressed()){
-            StartingColor = StartingColor.BLUE;
-        }
-        else if (gamepad1.triangleWasPressed()){
-            StartingSide = StartingSide.TRIANGLE;
-        }
-        else if (gamepad1.squareWasPressed()){
-            StartingSide = StartingSide.GOAL;
-        }
-        else if (gamepad1.square && gamepad1.triangle){
-            StartingSide = StartingSide.TTG;
-        }
-        // Set a delay for alliance
-        else if (gamepad1.optionsWasPressed()){
-            delay++;
-        }
-        else if (gamepad1.shareWasPressed()){
-            delay--;
-        }
-
-        if (StartingColor == StartingColor.RED){
-            colorString = "Red";
-        }
-        else{
-            colorString = "Blue";
-        }
-
-        if (StartingSide == StartingSide.GOAL){
-            sideString = "Goal";
-        }
-        else if (StartingSide == StartingSide.TRIANGLE){
-            sideString = "Triangle";
-        }
-        else {
-            sideString = "Triangle To Goal";
-        }
-
-
         // Initialization Telemetry
         telemetry.addLine("Status : Initialized\n");
-        telemetry.addLine("Please create a configuration to run auto (default: Red, Goal)");
-        telemetry.addLine("Circle/B: Red");
-        telemetry.addLine("Cross/A: Blue");
-        telemetry.addLine("Square/X: Goal");
-        telemetry.addLine("Triangle/Y: Triangle");
-        telemetry.addLine("Triangle + Square/Y + X: Triangle To Goal");
-        telemetry.addData("Config", colorString + ", " + sideString);
-//        telemetry.addData("Color:", colorString);
-//        telemetry.addData("Side:", sideString);
-        telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addLine("Please choose a velocity to run auto (default: "+VelocityZero+" ).");
-        telemetry.addData("D-pad left", VelocityOne);
-        telemetry.addData("D-pad up", VelocityTwo);
-        telemetry.addData("D-pad down", VelocityThree);
-        telemetry.addData("D-pad right", VelocityFour);
-        telemetry.addData("PS/Home :", VelocityZero);
-        telemetry.addLine("Right Bumper : add 50");
-        telemetry.addLine("Left Bumper : subtract 50");
-        telemetry.addData("Velocity", LAUNCHER_TARGET_VELOCITY);
-        telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addLine("Delay for alliance? (Default 0).");
-        telemetry.addLine("Option : Add 1 second");
-        telemetry.addLine("Share : Subtract 1 second");
-        telemetry.addData("Delay", delay + " seconds");
-
-        telemetry.addData("Heading", getHeading());
     }
     /*//////////////////////////////////////////////////////////////////////////////////////
     START
@@ -382,6 +302,8 @@ public class AveionAutonomous extends OpMode{
 
     @Override
     public void start() {
+        startMecanumMove(0, 305, 0, 0.5);
+
         timeToComplete.reset();
     }
 
@@ -395,184 +317,37 @@ public class AveionAutonomous extends OpMode{
     @Override
     public void loop() {
 
-        LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 50;
 
-        //Checks
-        UpdateIntake();
-        UpdateWait();
-        Shoot(false);
-
-
-        // Test Mecanums
-        /*if (step==0){
-            MoveMecanum(305, 305, 0, 0.5);
-            step++;
-        }
-        else if(step == 1 && mecanumMoveDone()){
-            MoveMecanum(0, 0, 90, 0.5);
-            step++;
-        }*/
-
-        // Starting side
-        if (StartingSide == StartingSide.GOAL){
-            //Steps here
-            if(step == 0){ // Delay code for alliance
-                Wait(delay);
-                step++;
-            }
-            else if(step == 1 && !timerRunning){ //shoot 1
-                Shoot(true);
-                step++;
-            }
-            else if(step == 2){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.5);
-                    step++;
-                }
-            }
-            else if(step == 3 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 4 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 5 && !timerRunning){ // shoot 2
-                Shoot(true);
-                step++;
-            }
-            else if(step == 6){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.2);
-                    step++;
-                }
-            }
-            else if(step == 7 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 8 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 9 && !timerRunning){ // shoot 3
-                Shoot(true);
-                step++;
-            }
-            else if(step == 10){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0);
-                    step++;
-                }
-            }
-            else if(step == 11 && !timerRunning){ // Move Back
-                flywheel.setVelocity(0);
-                MoveMecanum(0, -305, 0, 0.7);
-                step++;
-            }
-            else if (step == 12 && mecanumMoveDone()) { // Wait
-                Wait(1);
-                step++;
-            }
-            else if (step == 13 && !timerRunning){ // Move Strafe Out
-                MoveMecanum(305 * (StartingColor.sign), 0, 0, 0.5);
-                step++;
-            }
-            else if (step == 14 && mecanumMoveDone()){ // End code
-                requestOpModeStop();
-            }
-        }
-        else if (StartingSide == StartingSide.TRIANGLE){ // Triangle Launch //////////////////////////////////////////////
-            if(step == 0){// Delay code for alliance
-                Wait(delay);
-                step++;
-            }
-            else if (step == 1 && !timerRunning){// Strafe 1ft out the zone
-                MoveMecanum(305 * (StartingColor.sign), 0, 0, 0.7);
-                step++;
-            }
-            else if (step == 2 && mecanumMoveDone()){ // End code
-                requestOpModeStop();
-            }
-        }
-        else { // Triangle to Goal /////////////////////////////////////////////////////////
-            if(step == 0){ // Delay code for alliance
-                Wait(delay);
-                step++;
-            }
-            else if (step == 1 && !timerRunning){ //Move Forward
-                MoveMecanum(0, 2000, 0, 0.7);
-                step++;
-            }
-            else if(step==2 && mecanumMoveDone()){//Turn
-                MoveMecanum(0, 0, 45 * (StartingColor.sign), 0.4);
-                step++;
-            }
-            else if(step == 3 && mecanumMoveDone()){// Towards Goal
-                MoveMecanum(0, 1800, 0, 0.7);
-                step++;
-            }
-            else if(step == 4 && mecanumMoveDone()){ //req shot 1
-                Shoot(true);
-                step++;
-            }
-            else if(step == 5){ // wait until finished
-                if (LiftState == LiftState.IDLE){
-                    Wait(0.5);
-                    step++;
-                }
-            }
-            else if(step == 6 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 7 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 8 && !timerRunning){ // shoot 2
-                Shoot(true);
-                step++;
-            }
-            else if(step == 9){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.2);
-                    step++;
-                }
-            }
-            else if(step == 10 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 11 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 12 && !timerRunning){ // shoot 3
-                Shoot(true);
-                step++;
-            }
-            else if(step == 13){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.2);
-                    step++;
-                }
-            }
-            else if(step == 14 && !timerRunning){
-                requestOpModeStop();
-            }
-        }
-
+        // Get heading using IMU
+        Orientation angles = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        double currentHeading = angles.firstAngle;
 
         // Telemetry
-        telemetry.addData("Spinning: ", spinning);
-        telemetry.addData("Lift:", lifting);
-        telemetry.addData("Flywheel RPM: ", flywheel.getVelocity());
-        telemetry.addData("Lift: ", lift.getPosition());
-        telemetry.addData("Step:", step);
-        telemetry.addData("Heading", getHeading());
+
+        // Powers
+        telemetry.addData("FL Power", frontLeft.getPower());
+        telemetry.addData("FR Power", frontRight.getPower());
+        telemetry.addData("BL Power: ", backLeft.getPower());
+        telemetry.addData("BR Power: ", backRight.getPower());
+
+        // Positions
+        telemetry.addData("\nFL Position", frontLeft.getCurrentPosition());
+        telemetry.addData("FR Position", frontRight.getCurrentPosition());
+        telemetry.addData("BL Position", backLeft.getCurrentPosition());
+        telemetry.addData("BR Position", backRight.getCurrentPosition());
+
+        // Velocities
+        telemetry.addData("\nFL Velocity", frontLeft.getVelocity());
+        telemetry.addData("FR Velocity", frontRight.getVelocity());
+        telemetry.addData("BL Velocity", backLeft.getVelocity());
+        telemetry.addData("BR Velocity", backRight.getVelocity());
+
+        //Check if mecanum is active
+        telemetry.addData("\nMecanum active", mecanumActive);
+
         telemetry.update();
+
+        updateMecanum();
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -581,7 +356,6 @@ public class AveionAutonomous extends OpMode{
     @Override
     public void stop() {
         telemetry.addData("Time to complete :", timeToComplete.seconds());
-        telemetry.update();
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -592,19 +366,10 @@ public class AveionAutonomous extends OpMode{
     }
 
     //Check Functions
-    double getHeading(){
-        Orientation angles = imu.getRobotOrientation(
-                AxesReference.INTRINSIC,
-                AxesOrder.ZYX,
-                AngleUnit.DEGREES
-        );
-        return angles.firstAngle; // yaw (heading)
-    }
+
     boolean mecanumMoveDone(){
         return !frontRight.isBusy() && !frontLeft.isBusy() && !backLeft.isBusy() && !backRight.isBusy();
     }
-
-
     void UpdateWait(){
         if(!timerRunning){
             return;
@@ -632,19 +397,101 @@ public class AveionAutonomous extends OpMode{
         }
     }
 
-    // Moving Functions
+    // Physical Functions
     void Wait(double time){
         waitTimer.reset();
         timerDuration = time;
         timerRunning = true;
     }
+    void startMecanumMove(double xMM, double yMM, double rotationDeg, double power){
+        //Convert rotation from degrees to approximate wheel linear distance (arc length)
+        double rotationMM = Math.toRadians(rotationDeg) * ((ROBOT_LENGTH_MM + ROBOT_WIDTH_MM) / 2.0);
+
+        // Calculate each wheel's linear distance (mm)
+        double frontLeftMM  =  yMM  + xMM + rotationMM;
+        double frontRightMM =  yMM  - xMM - rotationMM;
+        double backLeftMM  =   yMM  - xMM + rotationMM;
+        double backRightMM   = yMM  + xMM - rotationMM;
+
+        // Convert to encoder ticks
+        int flTicks = mmToTicks(frontLeftMM);
+        int frTicks = mmToTicks(frontRightMM);
+        int brTicks = mmToTicks(backRightMM);
+        int blTicks = mmToTicks(backLeftMM);
+
+        // Set move power and heading
+        movePower = power;
+
+        // Desired heading is the current heading when movement stops
+        Orientation angles = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        desiredHeading = angles.firstAngle;
+
+        // Activate the mecanum
+        mecanumActive = true;
+
+        // ruR using encoders
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+    void updateMecanum(){
+        if (!mecanumActive) return;
+
+        //Encoder errors
+        int flError = flTarget - frontLeft.getCurrentPosition();
+        int frError = frTarget - frontRight.getCurrentPosition();
+        int blError = blTarget - backLeft.getCurrentPosition();
+        int brError = brTarget - backRight.getCurrentPosition();
+
+        // Check if all wheels reached target
+        if (Math.abs(flError) < encoderTolerance &&
+                Math.abs(frError) < encoderTolerance &&
+                Math.abs(blError) < encoderTolerance &&
+                Math.abs(brError) < encoderTolerance){
+            // Stop motors
+            frontLeft.setPower(0);
+            frontRight.setPower(0);
+            backLeft.setPower(0);
+            backRight.setPower(0);
+
+            mecanumActive = false;
+            return;
+        }
+        Orientation angles = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        double currentHeading = angles.firstAngle;
+        double headingError = desiredHeading - currentHeading;
+        while (headingError > 180){
+            headingError -= 360;
+        }
+        while (headingError < -180){
+            headingError += 360;
+        }
+        double rotationCorrection = headingError * kP_heading;
+
+        // Motor Powers
+        double flPower = clamp(flError * kP_encoder + rotationCorrection, -movePower, movePower);
+        double frPower = clamp(frError * kP_encoder + rotationCorrection, -movePower, movePower);
+        double blPower = clamp(blError * kP_encoder + rotationCorrection, -movePower, movePower);
+        double brPower = clamp(brError * kP_encoder + rotationCorrection, -movePower, movePower);
+
+        //Apply Powers
+        frontLeft.setPower(flPower);
+        frontRight.setPower(frPower);
+        backLeft.setPower(blPower);
+        backRight.setPower(brPower);
+
+    }
+    private double clamp(double val, double min, double max) {
+        return Math.max(min, Math.min(max, val));
+    }
+
 
     void MoveMecanum(double xMM, double yMM, double rotationDeg, double power){
 
-
         //Convert rotation from degrees to approximate wheel linear distance (arc length)
-        double turnRadiusMM = Math.hypot(ROBOT_LENGTH_MM / 2.0, ROBOT_WIDTH_MM / 2.0);
-        double rotationMM = Math.toRadians(rotationDeg) * turnRadiusMM;
+        double rotationMM = Math.toRadians(rotationDeg) * ((ROBOT_LENGTH_MM + ROBOT_WIDTH_MM) / 2.0);
 
         // Calculate each wheel's linear distance (mm)
         double frontLeftMM  =  yMM  + xMM + rotationMM;

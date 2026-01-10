@@ -25,7 +25,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.prefs.BackingStoreException;
 
-@TeleOp(name="AveionTeleOp", group = "Aveion")
+@TeleOp(name="27444 DECODE TeleOp", group = "Aveion")
 //@Disabled
 public class AveionTeleOp extends OpMode{
 
@@ -113,7 +113,7 @@ public class AveionTeleOp extends OpMode{
     @Override
     public void init(){
         // Determine Resource IDs for sounds built into the RC application.
-        int countachSoundID = hardwareMap.appContext.getResources().getIdentifier("ountach", "raw", hardwareMap.appContext.getPackageName());
+        int countachSoundID = hardwareMap.appContext.getResources().getIdentifier("countachlouder", "raw", hardwareMap.appContext.getPackageName());
         // Determine if sound resources are found.
         // Note: Preloading is NOT required, but it's a good way to verify all your sounds are available before you run.
         if (countachSoundID != 0) {
@@ -299,18 +299,21 @@ public class AveionTeleOp extends OpMode{
         Shoot(gamepad2.rightBumperWasPressed());
         ManualLift(gamepad2.squareWasPressed());
 
-        telemetry.addData("Spinning: ", spinning);
-        telemetry.addData("Lift:", lifting);
-        telemetry.addData("Flywheel RPM: ", flywheel.getVelocity());
-        telemetry.addData("Lift: ", lift.getPosition());
+        telemetry.addData("Spinning", spinning);
+        telemetry.addData("Lift", lifting);
+        telemetry.addData("Flywheel RPM", flywheel.getVelocity());
+        telemetry.addData("Lift", lift.getPosition());
 
         //telemetry.addLine("12345678912345678912345678912345678912");
         telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addData("D-pad left:", VelocityOne);
-        telemetry.addData("D-pad up:", VelocityTwo);
-        telemetry.addData("D-pad down:", VelocityThree);
-        telemetry.addData("D-pad right:", VelocityFour);
-        telemetry.addData("Velocity:", LAUNCHER_TARGET_VELOCITY);
+        telemetry.addData("D-pad left", VelocityOne);
+        telemetry.addData("D-pad up", VelocityTwo);
+        telemetry.addData("D-pad down", VelocityThree);
+        telemetry.addData("D-pad right", VelocityFour);
+        telemetry.addData("PS/Home", VelocityZero);
+        telemetry.addData("Velocity", LAUNCHER_TARGET_VELOCITY);
+        telemetry.addLine("----------------------------------------------------------------------------");
+        telemetry.addData("Drive Power", gear);
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -331,10 +334,10 @@ public class AveionTeleOp extends OpMode{
          */
         float denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
 
-        frontLeftPower = ((forward + strafe + rotate) * gear) / denominator;
-        frontRightPower = ((forward - strafe - rotate) * gear) / denominator;
-        backLeftPower = ((forward - strafe + rotate) * gear ) / denominator;
-        backRightPower = ((forward + strafe - rotate) * gear ) / denominator;
+        frontLeftPower = (( forward  + strafe + rotate) * gear) / denominator;
+        frontRightPower = ((forward  - strafe - rotate) * gear) / denominator;
+        backLeftPower = ((  forward  - strafe + rotate) * gear ) / denominator;
+        backRightPower = (( forward  + strafe - rotate) * gear ) / denominator;
 
         frontLeft.setPower(frontLeftPower);
         frontRight.setPower(frontRightPower);
