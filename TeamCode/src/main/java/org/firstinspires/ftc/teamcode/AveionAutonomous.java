@@ -63,7 +63,7 @@ public class AveionAutonomous extends OpMode{
     final double pushPos = 0.65;
 
     final double pushPosSet = 0.38;
-    final double liftTime = 0.5;
+    final double liftTime = 0.25;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0.0;
     final double FULL_SPEED = 1.0;
@@ -466,20 +466,56 @@ public class AveionAutonomous extends OpMode{
                     step++;
                 }
             }
-            else if(step == 11 && !timerRunning){ // Move Back
+            else if(step == 11 && !timerRunning){ // Intake
+                Intake(1);
+                step++;
+            }
+            else if (step == 12 && !intakeRunning){ // Wait
+                Wait(0.5);
+                step++;
+            }
+            else if (step == 13 && !timerRunning){ // shoot 4
+                Shoot(true);
+                step++;
+            }
+            else if(step == 14){
+                if (LiftState == LiftState.IDLE){ // Wait until finished shot
+                    Wait(0);
+                    step++;
+                }
+            }
+            else if(step == 15 && !timerRunning){ // Intake
+                Intake(1);
+                step++;
+            }
+            else if (step == 16 && !intakeRunning){ // Wait
+                Wait(0.5);
+                step++;
+            }
+            else if (step == 17 && !timerRunning){ // shoot 5
+                Shoot(true);
+                step++;
+            }
+            else if(step == 18){
+                if (LiftState == LiftState.IDLE){ // Wait until finished shot
+                    Wait(0);
+                    step++;
+                }
+            }
+            else if(step == 19 && !timerRunning){ // Move Back
                 flywheel.setVelocity(0);
                 MoveMecanum(0, -305, 0, 0.7);
                 step++;
             }
-            else if (step == 12 && mecanumMoveDone()) { // Wait
-                Wait(1);
+            else if (step == 20 && mecanumMoveDone()) { // Wait
+                Wait(0.1);
                 step++;
             }
-            else if (step == 13 && !timerRunning){ // Move Strafe Out
-                MoveMecanum(305 * (StartingColor.sign), 0, 0, 0.5);
+            else if (step == 21 && !timerRunning){ // Move Strafe Out
+                MoveMecanum(350 * (StartingColor.sign), 0, 0, 0.5);
                 step++;
             }
-            else if (step == 14 && mecanumMoveDone()){ // End code
+            else if (step == 22 && mecanumMoveDone()){ // End code
                 requestOpModeStop();
             }
         }
@@ -489,7 +525,7 @@ public class AveionAutonomous extends OpMode{
                 step++;
             }
             else if (step == 1 && !timerRunning){// Strafe 1ft out the zone
-                MoveMecanum(305 * (StartingColor.sign), 0, 0, 0.7);
+                MoveMecanum(0, 500, 0, 0.7);
                 step++;
             }
             else if (step == 2 && mecanumMoveDone()){ // End code
@@ -502,7 +538,7 @@ public class AveionAutonomous extends OpMode{
                 step++;
             }
             else if (step == 1 && !timerRunning){ //Move Forward
-                MoveMecanum(0, 2000, 0, 0.7);
+                MoveMecanum(0, 1300, 0, 0.7);
                 step++;
             }
             else if(step==2 && mecanumMoveDone()){//Turn
@@ -510,7 +546,7 @@ public class AveionAutonomous extends OpMode{
                 step++;
             }
             else if(step == 3 && mecanumMoveDone()){// Towards Goal
-                MoveMecanum(0, 1800, 0, 0.7);
+                MoveMecanum(0, 950, 0, 0.4);
                 step++;
             }
             else if(step == 4 && mecanumMoveDone()){ //req shot 1
@@ -560,6 +596,10 @@ public class AveionAutonomous extends OpMode{
                 }
             }
             else if(step == 14 && !timerRunning){
+                MoveMecanum(305 * (StartingColor.sign), -305, 0, 0.5);
+                step++;
+            }
+            else if(step == 15 && mecanumMoveDone()){
                 requestOpModeStop();
             }
         }

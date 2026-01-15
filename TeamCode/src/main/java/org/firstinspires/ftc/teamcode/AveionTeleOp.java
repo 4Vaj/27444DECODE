@@ -32,12 +32,17 @@ public class AveionTeleOp extends OpMode{
     //Timers
     ElapsedTime feederTimer = new ElapsedTime();
     ElapsedTime liftTimer = new ElapsedTime();
+    ElapsedTime conveyTimer = new ElapsedTime();
+    ElapsedTime waitTimer = new ElapsedTime();
 
     //Independent Variables
     final double pushPos = 0.65;
 
     final double pushPosSet = 0.38;
-    final double liftTime = 1;
+    final double liftTime = 0.1;
+
+    final double conveyTime = 2;
+    final double conveyWaitTime = 0.25;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0.0;
     final double FULL_SPEED = 1.0;
@@ -50,7 +55,7 @@ public class AveionTeleOp extends OpMode{
     // Target Velocities
     final double tolerance = 50;
     final double VelocityZero = 1000;
-    final double VelocityOne = 1200;
+    final double VelocityOne = 1100;
     final double VelocityTwo = 1500;
     final double VelocityThree = 2000;
     final double VelocityFour = 2500;
@@ -63,6 +68,7 @@ public class AveionTeleOp extends OpMode{
     private double gear = 0;
     private String lifting = null;
     private boolean spinning;
+    private boolean conveying;
     //Declare Motors
     private DcMotor frontRight = null;
     private DcMotor frontLeft = null;
@@ -90,6 +96,7 @@ public class AveionTeleOp extends OpMode{
         SPOOL,
         LIFT,
         LIFTING,
+        CONVEY,
     }
 
     private enum MLiftState {
@@ -196,8 +203,14 @@ public class AveionTeleOp extends OpMode{
         //PIDF Coefficients (i actually don't know how these work)
         flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(300, 0, 0, 10));
 
+        //Checks
         // Set Push Servo to down
         lift.setPosition(pushPosSet);
+        LAUNCHER_TARGET_VELOCITY = VelocityOne;
+        LAUNCHER_MIN_VELOCITY = VelocityOne - tolerance;
+        spinning = false;
+        conveying = false;
+
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -209,9 +222,7 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void init_loop() {
-        // Pick a velocity to shoot at
-        LAUNCHER_TARGET_VELOCITY = VelocityOne;
-        LAUNCHER_MIN_VELOCITY = VelocityOne - tolerance;
+
 
         // Drive Gears
         if (gamepad1.dpad_right){
@@ -255,9 +266,13 @@ public class AveionTeleOp extends OpMode{
         else if (gamepad2.dpad_down){
             LAUNCHER_TARGET_VELOCITY = VelocityFour;
         }
-        else if (gamepad2.share){
-            LAUNCHER_TARGET_VELOCITY = VelocityZero;
+        else if (gamepad2.rightBumperWasPressed()){
+            LAUNCHER_TARGET_VELOCITY += 50;
         }
+        else if (gamepad2.leftBumperWasPressed()){
+            LAUNCHER_TARGET_VELOCITY -= 50;
+        }
+
         LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 200;
 
 
@@ -269,7 +284,6 @@ public class AveionTeleOp extends OpMode{
 
         else if (gamepad2.circle) {
             spinning = false;
-            LiftState = LiftState.LIFTING;
             flywheel.setZeroPowerBehavior(BRAKE);
             flywheel.setPower(0);
             flywheel.setZeroPowerBehavior(FLOAT);
@@ -296,11 +310,12 @@ public class AveionTeleOp extends OpMode{
         rightConveyor.setPower(gamepad2.right_trigger);
 
         //Auto controls
-        Shoot(gamepad2.rightBumperWasPressed());
+        Shoot(gamepad2.triangle);
         ManualLift(gamepad2.squareWasPressed());
 
         telemetry.addData("Spinning", spinning);
         telemetry.addData("Lift", lifting);
+        telemetry.addData("Conveying", conveying);
         telemetry.addData("Flywheel RPM", flywheel.getVelocity());
         telemetry.addData("Lift", lift.getPosition());
 
@@ -310,7 +325,6 @@ public class AveionTeleOp extends OpMode{
         telemetry.addData("D-pad up", VelocityTwo);
         telemetry.addData("D-pad down", VelocityThree);
         telemetry.addData("D-pad right", VelocityFour);
-        telemetry.addData("PS/Home", VelocityZero);
         telemetry.addData("Velocity", LAUNCHER_TARGET_VELOCITY);
         telemetry.addLine("----------------------------------------------------------------------------");
         telemetry.addData("Drive Power", gear);
@@ -395,7 +409,22 @@ public class AveionTeleOp extends OpMode{
                 if (liftTimer.seconds() > liftTime) {
                     lifting = "";
                     lift.setPosition(pushPosSet);
-                    LiftState = LiftState.IDLE;
+                    waitTimer.reset();
+                    conveyTimer.reset();
+                    LiftState = LiftState.CONVEY;
+                }
+                break;
+            case CONVEY:
+                if (waitTimer.seconds() > conveyWaitTime){
+                    conveying = true;
+                    leftConveyor.setPower(1);
+                    rightConveyor.setPower(1);
+                    leftIntake.setPower(1);
+                    rightIntake.setPower(1);
+                    if (conveyTimer.seconds() > conveyTime){
+                        conveying = false;
+                        LiftState = LiftState.IDLE;
+                    }
                 }
                 break;
         }
