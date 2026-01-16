@@ -22,6 +22,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import java.util.prefs.BackingStoreException;
 
@@ -267,10 +268,10 @@ public class AveionTeleOp extends OpMode{
             LAUNCHER_TARGET_VELOCITY = VelocityFour;
         }
         else if (gamepad2.rightBumperWasPressed()){
-            LAUNCHER_TARGET_VELOCITY += 50;
+            LAUNCHER_TARGET_VELOCITY += 10;
         }
         else if (gamepad2.leftBumperWasPressed()){
-            LAUNCHER_TARGET_VELOCITY -= 50;
+            LAUNCHER_TARGET_VELOCITY -= 10;
         }
 
         LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 200;
@@ -359,6 +360,7 @@ public class AveionTeleOp extends OpMode{
         backRight.setPower(backRightPower);
 
     }
+
 
     void ManualLift(boolean liftRequested){
         switch (MLiftState){
