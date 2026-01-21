@@ -198,7 +198,7 @@ public class AveionAutonomous extends OpMode{
         frontRight = hardwareMap.get(DcMotorEx.class, "FR");
         frontLeft = hardwareMap.get(DcMotorEx.class, "FL");
         backLeft = hardwareMap.get(DcMotorEx.class, "BL");
-        backRight = hardwareMap.get(DcMotorEx.class, "BR");
+            backRight = hardwareMap.get(DcMotorEx.class, "BR");
 
         flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
 
