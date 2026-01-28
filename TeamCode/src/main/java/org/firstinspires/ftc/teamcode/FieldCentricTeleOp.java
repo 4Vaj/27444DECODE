@@ -6,19 +6,23 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 
 import com.qualcomm.ftccommon.SoundPlayer;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@TeleOp(name="Eric TeleOp", group = "Aveion")
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+@TeleOp(name="Field Centric TeleOp", group = "Aveion")
 //@Disabled
-public class AveionTeleOpVEric extends OpMode{
+public class FieldCentricTeleOp extends OpMode{
 
     //Timers
     ElapsedTime feederTimer = new ElapsedTime();
@@ -45,7 +49,6 @@ public class AveionTeleOpVEric extends OpMode{
 
     // Target Velocities
     final double tolerance = 50;
-    final double VelocityZero = 1000;
     final double VelocityOne = 1100;
     final double VelocityTwo = 1500;
     final double VelocityThree = 2000;
@@ -107,6 +110,10 @@ public class AveionTeleOpVEric extends OpMode{
     double frontLeftPower;
     double backRightPower;
     double backLeftPower;
+
+    // This declares the IMU needed to get the current direction the robot is facing
+    IMU imu;
+
 
     /*/////////////////////////////////////////////////////////////////////////////////
     INITIALIZE
@@ -210,6 +217,17 @@ public class AveionTeleOpVEric extends OpMode{
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
+
+        imu = hardwareMap.get(IMU.class, "imu");
+        // This needs to be changed to match the orientation on your robot
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
+                RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection usbDirection =
+                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+
+        RevHubOrientationOnRobot orientationOnRobot = new
+                RevHubOrientationOnRobot(logoDirection, usbDirection);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +265,7 @@ public class AveionTeleOpVEric extends OpMode{
     @Override
     public void loop() {
         //Mecanum Drive
-        mecanumDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
         //Velocities
         if (gamepad2.dpad_left){
@@ -358,13 +376,30 @@ public class AveionTeleOpVEric extends OpMode{
     /*//////////////////////////////////////////////////////////////////////////////////////
     METHODS
     /////////////////////////////////////////////////////////////////////////////////////*/
-    void mecanumDrive(float forward, float strafe, float rotate){
+
+    private void driveFieldRelative(double forward, double right, double rotate) {
+        // First, convert direction being asked to drive to polar coordinates
+        double theta = Math.atan2(forward, right);
+        double r = Math.hypot(right, forward);
+
+        // Second, rotate angle by the angle the robot is pointing
+        theta = AngleUnit.normalizeRadians(theta -
+                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+
+        // Third, convert back to cartesian
+        double newForward = r * Math.sin(theta);
+        double newRight = r * Math.cos(theta);
+
+        // Finally, call the drive method with robot relative forward and right amounts
+        mecanumDrive(newForward, newRight, rotate);
+    }
+    void mecanumDrive(double forward, double strafe, double rotate){
 
         /* the denominator is the largest motor power (absolute value) or 1
          * This ensures all the powers maintain the same ratio,
          * but only if at least one is out of the range [-1, 1]
          */
-        float denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
+        double denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
 
         frontLeftPower = (( forward  + strafe + rotate) * gear) / denominator;
         frontRightPower = ((forward  - strafe - rotate) * gear) / denominator;
