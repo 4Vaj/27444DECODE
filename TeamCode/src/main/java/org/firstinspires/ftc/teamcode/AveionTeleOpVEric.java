@@ -1,33 +1,24 @@
 package org.firstinspires.ftc.teamcode;
 
 // Imports
+
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
-
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-
-import androidx.lifecycle.Lifecycle;
 
 import com.qualcomm.ftccommon.SoundPlayer;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
-import java.util.prefs.BackingStoreException;
-
-@TeleOp(name="27444 DECODE TeleOp", group = "Aveion")
+@TeleOp(name="Eric TeleOp", group = "Aveion")
 //@Disabled
-public class AveionTeleOp extends OpMode{
+public class AveionTeleOpVEric extends OpMode{
 
     //Timers
     ElapsedTime feederTimer = new ElapsedTime();
@@ -305,14 +296,14 @@ public class AveionTeleOp extends OpMode{
         }
 
         //Hood Controls
-        if (gamepad1.leftBumperWasPressed())
+        if (gamepad1.left_bumper)
         {
             manualHoodAdjust -= 0.05;
             if (manualHoodAdjust < 0) {
                 manualHoodAdjust = 0;
             }
         }
-        else if (gamepad1.rightBumperWasPressed())
+        else if (gamepad1.right_bumper)
         {
             manualHoodAdjust += 0.05;
             if (manualHoodAdjust > 1) {
@@ -321,20 +312,22 @@ public class AveionTeleOp extends OpMode{
         }
         hood.setPosition(manualHoodAdjust);
 
+
         leftIntake.setPower(-gamepad2.left_trigger);
         rightIntake.setPower(-gamepad2.left_trigger);
         leftConveyor.setPower(-gamepad2.left_trigger);
         rightConveyor.setPower(-gamepad2.left_trigger);
 
-        leftIntake.setPower(gamepad2.right_trigger);
-        rightIntake.setPower(gamepad2.right_trigger);
-        leftConveyor.setPower(gamepad2.right_trigger);
-        rightConveyor.setPower(gamepad2.right_trigger);
+        if(gamepad2.square){
+            leftIntake.setPower(1);
+            rightIntake.setPower(1);
+            leftConveyor.setPower(1);
+            rightConveyor.setPower(1);
+        }
 
         //Auto controls
-        Shoot(gamepad2.triangle);
-        ManualLift(gamepad2.squareWasPressed());
-
+        Shoot((gamepad2.triangleWasPressed()));
+        ManualLift(gamepad2.right_trigger > 0.5);
         telemetry.addData("Spinning", spinning);
         telemetry.addData("Lift", lifting);
         telemetry.addData("Conveying", conveying);
