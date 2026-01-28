@@ -342,7 +342,7 @@ public class FieldCentricTeleOp extends OpMode{
             leftConveyor.setPower(1);
             rightConveyor.setPower(1);
         }
-
+//
         //Auto controls
         Shoot((gamepad2.triangleWasPressed()));
         ManualLift(gamepad2.right_trigger > 0.5);
