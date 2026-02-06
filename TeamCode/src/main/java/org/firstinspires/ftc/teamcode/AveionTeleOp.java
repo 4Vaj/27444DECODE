@@ -57,22 +57,19 @@ public class AveionTeleOp extends OpMode{
 
     // Target Velocities
     final double tolerance = 50;
-    final double VelocityZero = 1000;
-    final double VelocityOne = 1100;
-    final double VelocityTwo = 1500;
-    final double VelocityThree = 2000;
-    final double VelocityFour = 2500;
+    final double lineUpVelocity = 1100;
+    final double middleVelocity = 1200;
+    final double vertexVelocity = 1500;
+    final double farVelocity = 1700;
 
-    //Dependent Variables
-    double manualHoodAdjust = 0;
-
-    // Launcher Target and Minimumm Velocities
+    // Declare Dependent Variables
     private double LAUNCHER_TARGET_VELOCITY = 0;
     private double LAUNCHER_MIN_VELOCITY = 0;
     private double gear = 0;
     private String lifting = null;
     private boolean spinning;
     private boolean conveying;
+
     //Declare Motors
     private DcMotor frontRight = null;
     private DcMotor frontLeft = null;
@@ -214,14 +211,14 @@ public class AveionTeleOp extends OpMode{
         //Checks
         // Set Push Servo to down
         lift.setPosition(pushPosSet);
-        LAUNCHER_TARGET_VELOCITY = VelocityOne;
-        LAUNCHER_MIN_VELOCITY = VelocityOne - tolerance;
+        LAUNCHER_TARGET_VELOCITY = lineUpVelocity;
+        LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - tolerance;
         spinning = false;
         conveying = false;
+        lifting = "";
 
-
-        // Tell the driver that initialization is complete.
-        telemetry.addData("Status", "Initialized");
+        // Initially start with gear three
+        gear = gearThree;
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -230,8 +227,6 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void init_loop() {
-
-
         // Drive Gears
         if (gamepad1.dpad_right){
             gear = gearThree;
@@ -242,6 +237,13 @@ public class AveionTeleOp extends OpMode{
         else if (gamepad1.dpad_left){
             gear = gearOne;
         }
+        // Tell the driver that initialization is complete.
+        telemetry.addData("Status", "Initialized\n\n\n");
+        telemetry.addData("Drive Power", gear);
+        telemetry.addLine("----------------------------------------------------------------------------");
+        telemetry.addLine("Miscellaneous:");
+        telemetry.addLine("----------------------------------------------------------------------------");
+        telemetry.update();
     }
     /*//////////////////////////////////////////////////////////////////////////////////////
     START
@@ -249,7 +251,7 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void start() {
-        gear = gearTwo;
+
     }
 
     /*//////////////////////////////////////////////////////////////////////////////////////
@@ -258,22 +260,31 @@ public class AveionTeleOp extends OpMode{
 
     @Override
     public void loop() {
-        //Mecanum Drive
+        // Checks
+        LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - tolerance;
+
+        // Mecanum Drive
         mecanumDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
-        //Velocities
-        if (gamepad2.dpad_left){
-            LAUNCHER_TARGET_VELOCITY = VelocityOne;
+        // Launch Position Settings
+        if (gamepad2.dpad_left){ // Line Up
+            LAUNCHER_TARGET_VELOCITY = lineUpVelocity;
+            hood.setPosition(0.0);
         }
-        else if (gamepad2.dpad_up){
-            LAUNCHER_TARGET_VELOCITY = VelocityTwo;
+        else if (gamepad2.dpad_up){ // Between goal and vertex
+            LAUNCHER_TARGET_VELOCITY = middleVelocity;
+            hood.setPosition(0.7);
         }
-        else if (gamepad2.dpad_right){
-            LAUNCHER_TARGET_VELOCITY = VelocityThree;
+        else if (gamepad2.dpad_right){ // Vertex of large triangle
+            LAUNCHER_TARGET_VELOCITY = vertexVelocity;
+            hood.setPosition(1);
         }
         else if (gamepad2.dpad_down){
-            LAUNCHER_TARGET_VELOCITY = VelocityFour;
+            LAUNCHER_TARGET_VELOCITY = farVelocity;
+            hood.setPosition(1);
         }
+
+        // Manual Launch Velocities
         else if (gamepad2.rightBumperWasPressed()){
             LAUNCHER_TARGET_VELOCITY += 10;
         }
@@ -292,9 +303,7 @@ public class AveionTeleOp extends OpMode{
 
         else if (gamepad2.circle) {
             spinning = false;
-            flywheel.setZeroPowerBehavior(BRAKE);
             flywheel.setPower(0);
-            flywheel.setZeroPowerBehavior(FLOAT);
         }
         // Drive Gears
         if (gamepad1.dpad_right){
@@ -307,23 +316,7 @@ public class AveionTeleOp extends OpMode{
             gear = gearOne;
         }
 
-        //Hood Controls
-        if (gamepad1.leftBumperWasPressed())
-        {
-            manualHoodAdjust -= 0.05;
-            if (manualHoodAdjust < 0) {
-                manualHoodAdjust = 0;
-            }
-        }
-        else if (gamepad1.rightBumperWasPressed())
-        {
-            manualHoodAdjust += 0.05;
-            if (manualHoodAdjust > 1) {
-                manualHoodAdjust = 1;
-            }
-        }
-        hood.setPosition(manualHoodAdjust);
-
+        // Conveying
         leftIntake.setPower(-gamepad2.left_trigger);
         rightIntake.setPower(-gamepad2.left_trigger);
         leftConveyor.setPower(-gamepad2.left_trigger);
@@ -334,27 +327,27 @@ public class AveionTeleOp extends OpMode{
         leftConveyor.setPower(gamepad2.right_trigger);
         rightConveyor.setPower(gamepad2.right_trigger);
 
-        //Auto controls
-        Shoot(gamepad2.triangle);
+        // Method controls
+        Shoot(gamepad2.triangle); // Auto Shoot (slower cycling)
         ManualLift(gamepad2.squareWasPressed());
 
         telemetry.addData("Spinning", spinning);
-        telemetry.addData("Lift", lifting);
-        telemetry.addData("Conveying", conveying);
+        //telemetry.addData("Lift", lifting);
+        //telemetry.addData("Conveying", conveying);
         telemetry.addData("Flywheel RPM", flywheel.getVelocity());
-        telemetry.addData("Lift", lift.getPosition());
-
+        //telemetry.addData("Lift", lift.getPosition());
+        telemetry.addData("Velocity Within Tolerance", (flywheel.getVelocity() > LAUNCHER_MIN_VELOCITY));
         //telemetry.addLine("12345678912345678912345678912345678912");
         telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addData("D-pad left", VelocityOne);
-        telemetry.addData("D-pad up", VelocityTwo);
-        telemetry.addData("D-pad down", VelocityThree);
-        telemetry.addData("D-pad right", VelocityFour);
         telemetry.addData("Velocity", LAUNCHER_TARGET_VELOCITY);
+        telemetry.addData("D-pad left", "Line Up");
+        telemetry.addData("D-pad up", "Middle");
+        telemetry.addData("D-pad right", "Edge");
+        telemetry.addData("D-pad down", "Small Triangle");
         telemetry.addLine("----------------------------------------------------------------------------");
         telemetry.addData("Drive Power", gear);
         telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addData("Hood Position", manualHoodAdjust);
+        telemetry.addData("Hood Position", hood.getPosition());
         telemetry.update();
     }
 
@@ -398,14 +391,17 @@ public class AveionTeleOp extends OpMode{
             case IDLE:
                 lifting = "";
                 if(liftRequested){
+                    lifting = "Waiting to lift";
                     MLiftState = MLiftState.UP;
                 }
                 break;
             case UP:
-                lifting = "lifting";
-                lift.setPosition(pushPos);
-                liftTimer.reset();
-                MLiftState = MLiftState.DOWN;
+                if (flywheel.getVelocity() > LAUNCHER_MIN_VELOCITY) {
+                    lifting = "Lifting";
+                    lift.setPosition(pushPos);
+                    liftTimer.reset();
+                    MLiftState = MLiftState.DOWN;
+                }
                 break;
             case DOWN:
                 if (liftTimer.seconds() > liftTime) {
