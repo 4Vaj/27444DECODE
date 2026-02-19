@@ -114,7 +114,6 @@ public class AveionPedroAuto2 extends OpMode {
         // Set State Machines
         liftState = liftState.IDLE;
 
-
         //Initialize Motors and Servos
         flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
 
