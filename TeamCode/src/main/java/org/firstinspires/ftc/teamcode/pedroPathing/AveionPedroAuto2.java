@@ -54,8 +54,8 @@ public class AveionPedroAuto2 extends OpMode {
 
     final double liftDown = 0.38;
     final double liftTime = 1;
-    final double conveyTime = 1;
-    final double conveyWaitTime = 0.25;
+    final double conveyTime = 0.75;
+    final double conveyWaitTime = 1;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0;
     final double FULL_SPEED = 1;
@@ -83,6 +83,7 @@ public class AveionPedroAuto2 extends OpMode {
         LIFT,
         LIFTING,
         CONVEY,
+        STOP_CONVEY,
     }
     private LiftState liftState;
 
@@ -331,7 +332,6 @@ public class AveionPedroAuto2 extends OpMode {
                     lifting = false;
                     lift.setPosition(liftDown);
                     conveyWait.reset();
-                    conveyTimer.reset();
                     liftState = liftState.CONVEY;
                 }
                 break;
@@ -342,12 +342,21 @@ public class AveionPedroAuto2 extends OpMode {
                     rightConveyor.setPower(1);
                     leftIntake.setPower(1);
                     rightIntake.setPower(1);
-                    if(conveyTimer.seconds() > conveyTime) {
-                        conveying = false;
-                        liftState = liftState.IDLE;
-                        shots++;
-                    }
+                    conveyTimer.reset();
+                    liftState = liftState.STOP_CONVEY;
                 }
+                break;
+            case STOP_CONVEY:
+                if(conveyTimer.seconds() > conveyTime){
+                    conveying = false;
+                    leftConveyor.setPower(0);
+                    rightConveyor.setPower(0);
+                    leftIntake.setPower(0);
+                    rightIntake.setPower(0);
+                    shots++;
+                    liftState = liftState.IDLE;
+                }
+                break;
         }
     }
     public void requestShots(int shots){
@@ -355,7 +364,7 @@ public class AveionPedroAuto2 extends OpMode {
     }
 
     public void Convey(boolean conveyRequest){
-        conveying = true;
+        conveying = conveyRequest;
         leftConveyor.setPower(1);
         rightConveyor.setPower(1);
         leftIntake.setPower(1);
