@@ -277,6 +277,7 @@ public class AveionPedroAuto2 extends OpMode {
                 if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
                     follower.followPath(paths.BackUpFromSpike, true);
                     setPathState(6);
+                    Convey(false);
                     waitTimer.reset();
                 }
                 break;
