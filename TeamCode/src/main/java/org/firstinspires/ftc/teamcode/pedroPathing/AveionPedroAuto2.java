@@ -365,9 +365,17 @@ public class AveionPedroAuto2 extends OpMode {
 
     public void Convey(boolean conveyRequest){
         conveying = conveyRequest;
-        leftConveyor.setPower(1);
-        rightConveyor.setPower(1);
-        leftIntake.setPower(1);
-        rightIntake.setPower(1);
+        if (conveyRequest){
+            leftConveyor.setPower(1);
+            rightConveyor.setPower(1);
+            leftIntake.setPower(1);
+            rightIntake.setPower(1);
+        }
+        else {
+            leftConveyor.setPower(0);
+            rightConveyor.setPower(0);
+            leftIntake.setPower(0);
+            rightIntake.setPower(0);
+        }
     }
 }
