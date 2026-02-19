@@ -20,9 +20,9 @@ public class Constants {
             .forwardZeroPowerAcceleration(-42.66634463218226)
             .lateralZeroPowerAcceleration(-84.66708322242962)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.12, 0, 0.012, 0.025))
-            .headingPIDFCoefficients(new PIDFCoefficients(0.06, 0.0, 1.1, .025))
+            .headingPIDFCoefficients(new PIDFCoefficients(1, 0.0, 0.035, 0.025))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0, 0.0005,0.1, 0.115))
-            .centripetalScaling(0.0005);
+            .centripetalScaling(0.0009);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
@@ -49,11 +49,11 @@ public class Constants {
 
     // GO BACK TO PEDRO PATH STEPS AND GO TO ENCODER RESOLUTION.
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(4) // Y-Pod distance to center
-            .strafePodX(0.75) // X-Pod distance to center
+            .forwardPodY(4.25) // Y-Pod distance to center
+            .strafePodX(0.375) // X-Pod distance to center
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD)
+            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 }

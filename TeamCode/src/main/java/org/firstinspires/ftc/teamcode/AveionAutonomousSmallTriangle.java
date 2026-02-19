@@ -4,34 +4,29 @@ package org.firstinspires.ftc.teamcode;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
-import android.media.tv.TvContract;
-import android.webkit.WebStorage;
-
+import com.qualcomm.ftccommon.SoundPlayer;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot.LogoFacingDirection;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot.UsbFacingDirection;
-import com.qualcomm.hardware.bosch.BHI260IMU;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import com.qualcomm.ftccommon.SoundPlayer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
-@Autonomous(name="27444 DECODE Auto", group = "Aveion")
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+
+@Autonomous(name="27444 DECODE Auto Small Triangle", group = "Aveion")
 //@Disabled
-public class AveionAutonomous extends OpMode{
+public class AveionAutonomousSmallTriangle extends OpMode{
 
     // IMU
     IMU imu;
@@ -70,6 +65,7 @@ public class AveionAutonomous extends OpMode{
 
     // Target Velocities
     final double goalVelocity = 1100;
+    final double farVelocity = 1700;
 
     //Dependent Variables
 
@@ -262,7 +258,7 @@ public class AveionAutonomous extends OpMode{
         lift.setPosition(pushPosSet);
 
         // Default Target Velocity
-        LAUNCHER_TARGET_VELOCITY = goalVelocity;
+        LAUNCHER_TARGET_VELOCITY = farVelocity;
 
         // Checks
         StartingColor = StartingColor.RED;
@@ -283,65 +279,27 @@ public class AveionAutonomous extends OpMode{
     @Override
     public void init_loop() {
         // Create a configuration
-        if (gamepad1.circleWasPressed()){
-            StartingColor = StartingColor.RED;
-        }
-        else if (gamepad1.crossWasPressed()){
-            StartingColor = StartingColor.BLUE;
-        }
-        else if (gamepad1.triangleWasPressed()){
-            StartingSide = StartingSide.TRIANGLE;
-        }
-        else if (gamepad1.squareWasPressed()){
-            StartingSide = StartingSide.GOAL;
-        }
-        else if (gamepad1.square && gamepad1.triangle){
-            StartingSide = StartingSide.TTG;
-        }
         // Set a delay for alliance
-        else if (gamepad1.optionsWasPressed()){
+        if (gamepad1.optionsWasPressed()){
             delay++;
         }
         else if (gamepad1.shareWasPressed()){
             delay--;
         }
-
-        if (StartingColor == StartingColor.RED){
-            colorString = "Red";
+        else if (gamepad1.squareWasPressed())
+        {
+            StartingColor = StartingColor.RED;
         }
-        else{
-            colorString = "Blue";
-        }
-
-        if (StartingSide == StartingSide.GOAL){
-            sideString = "Goal";
-        }
-        else if (StartingSide == StartingSide.TRIANGLE){
-            sideString = "Triangle";
-        }
-        else {
-            sideString = "Triangle To Goal";
+        else if (gamepad1.crossWasPressed())
+        {
+            StartingColor = StartingColor.BLUE;
         }
 
-        hood.setPosition(0);
+        hood.setPosition(1);
 
 
         // Initialization Telemetry
-        telemetry.addLine("Status : Initialized\n");
-        telemetry.addLine("Please create a configuration to run auto (default: Red, Goal)");
-        telemetry.addLine("Circle/B: Red");
-        telemetry.addLine("Cross/A: Blue");
-        telemetry.addLine("Square/X: Goal");
-        telemetry.addLine("Triangle/Y: Triangle");
-        telemetry.addLine("Triangle + Square/Y + X: Triangle To Goal");
-        telemetry.addData("Config", colorString + ", " + sideString);
-//        telemetry.addData("Color:", colorString);
-//        telemetry.addData("Side:", sideString);
-        telemetry.addLine("----------------------------------------------------------------------------");
-        telemetry.addLine("Right Bumper : add 50");
-        telemetry.addLine("Left Bumper : subtract 50");
-        telemetry.addData("Velocity", LAUNCHER_TARGET_VELOCITY);
-        telemetry.addLine("----------------------------------------------------------------------------");
+        telemetry.addData("Color", StartingColor);
         telemetry.addLine("Delay for alliance? (Default 0).");
         telemetry.addLine("Option : Add 1 second");
         telemetry.addLine("Share : Subtract 1 second");
@@ -368,7 +326,8 @@ public class AveionAutonomous extends OpMode{
     @Override
     public void loop() {
 
-        LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 20;
+        LAUNCHER_MIN_VELOCITY = LAUNCHER_TARGET_VELOCITY - 10;
+        hood.setPosition(1);
 
         //Checks
         UpdateIntake();
@@ -386,202 +345,109 @@ public class AveionAutonomous extends OpMode{
             step++;
         }*/
 
-        // Starting side
-        if (StartingSide == StartingSide.GOAL){
-            //Steps here
-            if(step == 0){ // Delay code for alliance
-                Wait(delay);
-                step++;
-            }
-            else if(step == 1 && !timerRunning){
-                MoveMecanum(0, -32
-                        , 0, 0.5);
-                step++;
-            }
-            else if(step == 2 && mecanumMoveDone()){ //shoot 1
-                Shoot(true);
-                step++;
-            }
-            else if(step == 3){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.5);
-                    step++;
-                }
-            }
-            else if(step == 4 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 5 && !intakeRunning){ // Wait
+        //Steps here
+        if(step == 0){ // Delay code for alliance
+            Wait(delay);
+            step++;
+        }
+        else if(step == 1 && !timerRunning){
+            MoveMecanum(0, 145.5, 0, 0.5);
+            step++;
+        }
+        else if(step == 2 && mecanumMoveDone()){
+            MoveMecanum(0, 0, 18 * (StartingColor.sign), 0.5);
+            step++;
+        }
+        else if(step == 3 && mecanumMoveDone()){ //shoot 1
+            Shoot(true);
+            step++;
+        }
+        else if(step == 4){
+            if (LiftState == LiftState.IDLE){ // Wait until finished shot
                 Wait(0.5);
                 step++;
-            }
-            else if (step == 6 && !timerRunning){ // shoot 2
-                Shoot(true);
-                step++;
-            }
-            else if(step == 7){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.2);
-                    step++;
-                }
-            }
-            else if(step == 8 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 9 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 10 && !timerRunning){ // shoot 3
-                Shoot(true);
-                step++;
-            }
-            else if(step == 11){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0);
-                    step++;
-                }
-            }
-            else if(step == 12 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 13 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 14 && !timerRunning){ // shoot 4
-                Shoot(true);
-                step++;
-            }
-            else if(step == 15){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0);
-                    step++;
-                }
-            }
-            else if(step == 16 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 17 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 18 && !timerRunning){ // shoot 5
-                Shoot(true);
-                step++;
-            }
-            else if(step == 19){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0);
-                    step++;
-                }
-            }
-            else if(step == 20 && !timerRunning){ // Move Back
-                flywheel.setVelocity(0);
-                MoveMecanum(0, -305, 0, 0.7);
-                step++;
-            }
-            else if (step == 21 && mecanumMoveDone()) { // Wait
-                Wait(0.1);
-                step++;
-            }
-            else if (step == 22 && !timerRunning){ // Move Strafe Out
-                MoveMecanum(350 * (StartingColor.sign), 0, 0, 0.5);
-                step++;
-            }
-            else if (step == 23 && mecanumMoveDone()){ // End code
-                requestOpModeStop();
             }
         }
-        else if (StartingSide == StartingSide.TRIANGLE){ // Triangle Move //////////////////////////////////////////////
-            if(step == 0){// Delay code for alliance
-                Wait(delay);
+        else if(step == 5 && !timerRunning){ // Intake
+            Intake(1);
+            step++;
+        }
+        else if (step == 6 && !intakeRunning){ // Wait
+            Wait(0.5);
+            step++;
+        }
+        else if (step == 7 && !timerRunning){ // shoot 2
+            Shoot(true);
+            step++;
+        }
+        else if(step == 8){
+            if (LiftState == LiftState.IDLE){ // Wait until finished shot
+                Wait(0.2);
                 step++;
-            }
-            else if (step == 1 && !timerRunning){// Strafe 1ft out the zone
-                MoveMecanum(0, 500, 0, 0.7);
-                step++;
-            }
-            else if (step == 2 && mecanumMoveDone()){ // End code
-                requestOpModeStop();
             }
         }
-        else { // Triangle to Goal /////////////////////////////////////////////////////////
-            if(step == 0){ // Delay code for alliance
-                Wait(delay);
+        else if(step == 9 && !timerRunning){ // Intake
+            Intake(1);
+            step++;
+        }
+        else if (step == 10 && !intakeRunning){ // Wait
+            Wait(0.5);
+            step++;
+        }
+        else if (step == 11 && !timerRunning){ // shoot 3
+            Shoot(true);
+            step++;
+        }
+        else if(step == 12){
+            if (LiftState == LiftState.IDLE){ // Wait until finished shot
+                Wait(0);
                 step++;
-            }
-            else if (step == 1 && !timerRunning){ //Move Forward
-                MoveMecanum(0, 1300, 0, 0.7);
-                step++;
-            }
-            else if(step==2 && mecanumMoveDone()){//Turn
-                MoveMecanum(0, 0, 45 * (StartingColor.sign), 0.4);
-                step++;
-            }
-            else if(step == 3 && mecanumMoveDone()){// Towards Goal
-                MoveMecanum(0, 950, 0, 0.4);
-                step++;
-            }
-            else if(step == 4 && mecanumMoveDone()){ //req shot 1
-                Shoot(true);
-                step++;
-            }
-            else if(step == 5){ // wait until finished
-                if (LiftState == LiftState.IDLE){
-                    Wait(0.5);
-                    step++;
-                }
-            }
-            else if(step == 6 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 7 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 8 && !timerRunning){ // shoot 2
-                Shoot(true);
-                step++;
-            }
-            else if(step == 9){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.2);
-                    step++;
-                }
-            }
-            else if(step == 10 && !timerRunning){ // Intake
-                Intake(1);
-                step++;
-            }
-            else if (step == 11 && !intakeRunning){ // Wait
-                Wait(0.5);
-                step++;
-            }
-            else if (step == 12 && !timerRunning){ // shoot 3
-                Shoot(true);
-                step++;
-            }
-            else if(step == 13){
-                if (LiftState == LiftState.IDLE){ // Wait until finished shot
-                    Wait(0.2);
-                    step++;
-                }
-            }
-            else if(step == 14 && !timerRunning){
-                MoveMecanum(305 * (StartingColor.sign), -305, 0, 0.5);
-                step++;
-            }
-            else if(step == 15 && mecanumMoveDone()){
-                requestOpModeStop();
             }
         }
-
+        else if(step == 13 && !timerRunning){ // Intake
+            Intake(1);
+            step++;
+        }
+        else if (step == 14 && !intakeRunning){ // Wait
+            Wait(0.5);
+            step++;
+        }
+        else if (step == 15 && !timerRunning){ // shoot 4
+            Shoot(true);
+            step++;
+        }
+        else if(step == 16){
+            if (LiftState == LiftState.IDLE){ // Wait until finished shot
+                Wait(0);
+                step++;
+            }
+        }
+        else if(step == 17 && !timerRunning){ // Intake
+            Intake(1);
+            step++;
+        }
+        else if (step == 18 && !intakeRunning){ // Wait
+            Wait(0.5);
+            step++;
+        }
+        else if (step == 19 && !timerRunning){ // shoot 5
+            Shoot(true);
+            step++;
+        }
+        else if(step == 20){
+            if (LiftState == LiftState.IDLE){ // Wait until finished shot
+                Wait(0);
+                step++;
+            }
+        }
+        else if(step == 21 && !timerRunning){ // Move out just in case
+            flywheel.setVelocity(0);
+            MoveMecanum(0, 400, 0, 0.7);
+            step++;
+        }
+        else if (step == 22 && mecanumMoveDone()) { // End Code
+            requestOpModeStop();
+        }
 
         // Telemetry
         telemetry.addData("Spinning: ", spinning);

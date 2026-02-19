@@ -39,12 +39,12 @@ public class AveionTeleOp extends OpMode{
     ElapsedTime waitTimer = new ElapsedTime();
 
     //Independent Variables
-    final double pushPos = 0.65;
+    final double pushPos = 0.55;
 
     final double pushPosSet = 0.38;
-    final double liftTime = 0.1;
+    final double liftTime = 1;
 
-    final double conveyTime = 2;
+    final double conveyTime = 1;
     final double conveyWaitTime = 0.25;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0.0;
@@ -58,7 +58,7 @@ public class AveionTeleOp extends OpMode{
     // Target Velocities
     final double tolerance = 50;
     final double lineUpVelocity = 1100;
-    final double middleVelocity = 1200;
+    final double middleVelocity = 1280;
     final double vertexVelocity = 1500;
     final double farVelocity = 1700;
 
@@ -273,7 +273,7 @@ public class AveionTeleOp extends OpMode{
         }
         else if (gamepad2.dpad_up){ // Between goal and vertex
             LAUNCHER_TARGET_VELOCITY = middleVelocity;
-            hood.setPosition(0.7);
+            hood.setPosition(1);
         }
         else if (gamepad2.dpad_right){ // Vertex of large triangle
             LAUNCHER_TARGET_VELOCITY = vertexVelocity;
