@@ -37,6 +37,9 @@ public class AveionPedroAuto2 extends OpMode {
     ElapsedTime conveyTimer = new ElapsedTime();
     ElapsedTime conveyWait = new ElapsedTime();
 
+    ElapsedTime jerkTimer = new ElapsedTime();
+
+
 
     // Motors and Servos
     private DcMotorEx flywheel = null;
@@ -56,9 +59,13 @@ public class AveionPedroAuto2 extends OpMode {
     final double liftTime = 1;
     final double conveyTime = 0.75;
     final double conveyWaitTime = 1;
+
+    final double jerkTime = 0.2;
     final double FEED_TIME_SECONDS = 0.20;
     final double STOP_SPEED = 0;
     final double FULL_SPEED = 1;
+
+    final double brakeTolerance = 150;
 
     // Target Velocities
     final double tolerance = 50;
@@ -73,6 +80,7 @@ public class AveionPedroAuto2 extends OpMode {
     private boolean lifting;
     private boolean spinning;
     private boolean conveying;
+    private boolean braking;
     private int shots;
     private int requestedShots;
 
@@ -258,15 +266,16 @@ public class AveionPedroAuto2 extends OpMode {
                     }
                 }
                 break;
-            case 3:
-                if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
+            case 3: // Go line up and brake the flywheel
+                if(!follower.isBusy() && waitTimer.milliseconds() > 500){
                     follower.followPath(paths.LineUpSpike1, true);
                     setPathState(4);
-                    waitTimer.reset();
+                    startBrake();
                 }
                 break;
             case 4:
-                if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
+                Brake();
+                if(!follower.isBusy() && !braking && Math.abs(flywheel.getVelocity()) < brakeTolerance){
                     follower.followPath(paths.GrabArtifacts, .4, true);
                     setPathState(5);
                     Convey(true);
@@ -274,7 +283,7 @@ public class AveionPedroAuto2 extends OpMode {
                 }
                 break;
             case 5:
-                if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
+                if(!follower.isBusy() && waitTimer.milliseconds() > 500){
                     follower.followPath(paths.BackUpFromSpike, true);
                     setPathState(6);
                     Convey(false);
@@ -282,20 +291,31 @@ public class AveionPedroAuto2 extends OpMode {
                 }
                 break;
             case 6:
-                if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
+                if(!follower.isBusy() && waitTimer.milliseconds() > 100){
                     follower.followPath(paths.DrivetoShoot2, true);
                     setPathState(7);
                     waitTimer.reset();
                 }
                 break;
             case 7:
-                if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
-                    follower.followPath(paths.LineUpSpike1, true);
-                    setPathState(8);
-                    waitTimer.reset();
+                if(!follower.isBusy() && waitTimer.milliseconds() > 100){
+                    Shoot(true);
+                    requestShots(3);
+                    if(shots == requestedShots){
+                        setPathState(8);
+                        flywheel.setVelocity(0);
+                        waitTimer.reset();
+                    }
                 }
                 break;
             case 8:
+                if(!follower.isBusy() && waitTimer.milliseconds() > 500){
+                    follower.followPath(paths.LineUpSpike1, true);
+                    setPathState(9);
+                    waitTimer.reset();
+                }
+                break;
+            case 9:
                 if(!follower.isBusy() && waitTimer.milliseconds() > 2500){
                     setPathState(-1);
                 }
@@ -377,6 +397,24 @@ public class AveionPedroAuto2 extends OpMode {
             rightConveyor.setPower(0);
             leftIntake.setPower(0);
             rightIntake.setPower(0);
+        }
+    }
+
+    public void startBrake(){
+        braking = true;
+        jerkTimer.reset();
+    }
+    public void Brake(){
+        if (!braking) return;
+        double velocity = flywheel.getVelocity();
+        if (Math.abs(velocity) < brakeTolerance){
+            braking = false;
+            return;
+        }
+        if (jerkTimer.seconds() < jerkTime) {
+            flywheel.setVelocity(-Math.copySign(2000,velocity));
+        } else {
+            flywheel.setVelocity(0);
         }
     }
 }
